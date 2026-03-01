@@ -21,20 +21,64 @@ const getToken = async (code) => {
         })
         return response.data.access_token;
     } catch (error) {
-        console.log('Spotify errorL', error.response.data);
+        console.log('Spotify error:', error.response.data);
     }
 }
 
 const getTopArtists = async (token) => {
-
+    try {
+        const response = await axios.get('https://api.spotify.com/v1/me/top/artists', {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+            params: {
+                limit: 5,
+                time_range: 'long_term'
+             }
+        })
+        return response.data.items.map(artist => ({
+            artist: artist.name,
+            genres: artist.genres,
+            image: artist.images[0].url,
+            artistID: artist.id
+        }))
+    } catch(error) {
+        console.log(`Spotify error:`, error.response.data);
+    }
 }
 
 const getTopTracks = async(token) => {
-
+    try {
+        const response = await axios.get('https://api.spotify.com/v1/me/top/tracks', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            params: {
+                limit: 5,
+                time_range: 'long_term'
+             }
+        })
+        return response.data.items.map(track => ({
+            name: track.name,
+            artist: track.arists[0].name,
+            album: track.album.name,
+            date: track.album.release_date,
+            image: track.album.images[0].url,
+            trackId: track.id,
+            playback: track.preview_url
+        }));
+    } catch(error) {
+        console.log(`Spotify error:`, error.response.data);
+    }
 }
 
-const getRecommendations = async (genres) => {
-
+const getRecommendations = async (token, genres) => {
+    try {
+        const seedArtists = getTopArtists(token);
+        const response = axios.get()
+    } catch(error) {
+        console.log(`Error while trying to get recommendations: `, error.response.data);
+    }
 }
 
-module.exports = { getAuthURL, getToken };
+module.exports = { getAuthURL, getToken, getTopArtists, getTopTracks, getRecommendations };
