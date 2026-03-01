@@ -1,6 +1,14 @@
 const router = require('express').Router();
+const { getAuthURL } = require('../services/spotify');
 
 
+router.get('/login', (req, res) => {
+    console.log(`login route hit`)
+    const url = getAuthURL();
+    console.log(`auth url created: ${url}`)
+    res.redirect(url);
+    console.log(`redirect called`)
+})
 
 router.get('/search', (req, res) => {
     const data = req.query.q;
