@@ -74,7 +74,14 @@ const getTopTracks = async(token) => {
 
 const getRecommendations = async (token, genres) => {
     try {
-        const seedArtists = getTopArtists(token);
+        const seedArtists = await getTopArtists(token);
+        const seedTracks = await getTopTracks(token);
+        const artists = new Set();
+        const tracks = new Set();
+        for(let i = 0; i < 2; i++) {
+            artists.add(seedArtists[Math.floor(Math.random() * seedArtists.length)].id);
+            tracks.add(seedTracks[Math.floor(Math.random() * seedTracks.length)].id);
+        }
         const response = axios.get()
     } catch(error) {
         console.log(`Error while trying to get recommendations: `, error.response.data);
