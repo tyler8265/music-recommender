@@ -25,6 +25,11 @@ app.get('/callback', async (req, res) => {
     res.redirect('/');
 })
 
+app.get('/logout', (req, res) => {
+    req.session.destroy();
+    res.redirect('/');
+})
+
 app.listen(process.env.PORT, () => {
     console.log("Server is running on PORT 3000...")
 })
