@@ -99,6 +99,12 @@ const getRelatedArtists = async (artistName) => {
 const getRecommendations = async (token) => {
     try {
         let topArtists = await getTopArtists(token);
+        const topTracks = await getTopTracks(token);
+        const topTracksIds = topTracks.map(track => ({ id: track.id }))
+        const topTracksSet = new Set();
+        topTracksIds.forEach(id => {
+            topTracksSet.add(id);
+        })
         const relatedArtists = await Promise.all(
             topArtists.map(artist => { return getRelatedArtists(artist.name) }
         ));
@@ -118,9 +124,10 @@ const getRecommendations = async (token) => {
                 value.count++;
             }
         }
-        const sorted = [...relatedArtistsMap.values()].sort((a, b) => b.count - a.count);
+        const sorted = [...relatedArtistsMap.values()].sort((a, b) => b.count - a.count).slice(0, 15);
+        const randomizedSorted = sorted.sort(() => Math.random() - 0.5);
         let topRelatedPicks = await Promise.all(
-            sorted.slice(0,5).map(artist => {
+            randomizedSorted.slice(0,5).map(artist => {
                 return axios.get(`https://api.spotify.com/v1/search`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
@@ -135,6 +142,9 @@ const getRecommendations = async (token) => {
             })
         )
         const tracks = topRelatedPicks.flatMap(res => res.data.tracks.items.slice(0, 2));
+        const tracksFilter = tracks.filter(track => {
+            !topTracksSet.has(track);
+        })
         return tracks.map(track => ({
             name: track.name,
             artist: track.artists[0].name,
