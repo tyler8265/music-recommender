@@ -19,7 +19,10 @@ const getToken = async (code) => {
                 'Content-Type': 'application/x-www-form-urlencoded'
             }
         })
-        return response.data.access_token;
+         return {
+            accessToken: response.data.access_token,
+            refreshToken: response.data.refresh_token
+        };
     } catch (error) {
         console.log('Spotify error:', error.response.data);
     }
@@ -33,14 +36,15 @@ const getTopArtists = async (token) => {
             },
             params: {
                 limit: 5,
-                time_range: 'long_term'
+                time_range: 'medium_term'
              }
         })
+        console.log(response.data.items);
         return response.data.items.map(artist => ({
-            artist: artist.name,
+            name: artist.name,
             genres: artist.genres,
             image: artist.images[0].url,
-            artistID: artist.id
+            id: artist.id
         }))
     } catch(error) {
         console.log(`Spotify error:`, error.response.data);
@@ -55,34 +59,89 @@ const getTopTracks = async(token) => {
             },
             params: {
                 limit: 5,
-                time_range: 'long_term'
+                time_range: 'medium_term'
              }
         })
         return response.data.items.map(track => ({
             name: track.name,
-            artist: track.arists[0].name,
+            artist: track.artists[0].name,
             album: track.album.name,
             date: track.album.release_date,
             image: track.album.images[0].url,
-            trackId: track.id,
-            playback: track.preview_url
+            id: track.id,
         }));
     } catch(error) {
         console.log(`Spotify error:`, error.response.data);
     }
 }
 
-const getRecommendations = async (token, genres) => {
+const getRelatedArtists = async (artistName) => {
     try {
-        const seedArtists = await getTopArtists(token);
-        const seedTracks = await getTopTracks(token);
-        const artists = new Set();
-        const tracks = new Set();
-        for(let i = 0; i < 2; i++) {
-            artists.add(seedArtists[Math.floor(Math.random() * seedArtists.length)].id);
-            tracks.add(seedTracks[Math.floor(Math.random() * seedTracks.length)].id);
+        const response = await axios.get(`http://ws.audioscrobbler.com/2.0/`, {
+        params: {
+                method: 'artist.getSimilar',
+                artist: artistName,
+                api_key: process.env.LASTFM_API_KEY,
+                format: 'json',
+                limit: 10
+            }
+        })
+        console.log(response.data.similarartists.artist);
+        return response.data.similarartists.artist.map(artist => ({
+            name: artist.name,
+            match: artist.match
+        }))
+    } catch(error) {
+        console.log(`Error retrieving related artists: `, error.response.data);
+    }
+}
+
+const getRecommendations = async (token) => {
+    try {
+        let topArtists = await getTopArtists(token);
+        const relatedArtists = await Promise.all(
+            topArtists.map(artist => { return getRelatedArtists(artist.name) }
+        ));
+        topArtists = topArtists.map(artist => artist.name);
+        const filteredRelatedArtists = relatedArtists.flat().filter(artist => {
+           return !topArtists.includes(artist.name);
+        });
+        const relatedArtistsMap = new Map();
+        for(let i = 0; i < filteredRelatedArtists.length; i++) {
+            if(!relatedArtistsMap.has(filteredRelatedArtists[i].name)) {
+                relatedArtistsMap.set(filteredRelatedArtists[i].name, {
+                    ...filteredRelatedArtists[i],
+                    count: 1
+                });
+            } else {
+                let value = relatedArtistsMap.get(filteredRelatedArtists[i].name);
+                value.count++;
+            }
         }
-        const response = axios.get()
+        const sorted = [...relatedArtistsMap.values()].sort((a, b) => b.count - a.count);
+        let topRelatedPicks = await Promise.all(
+            sorted.slice(0,5).map(artist => {
+                return axios.get(`https://api.spotify.com/v1/search`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    params: {
+                        q: artist.name,
+                        market: 'US',
+                        type: 'track',
+                        limit: 5
+                    }
+                })
+            })
+        )
+        const tracks = topRelatedPicks.flatMap(res => res.data.tracks.items.slice(0, 2));
+        return tracks.map(track => ({
+            name: track.name,
+            artist: track.artists[0].name,
+            album: track.album.name,
+            image: track.album.images[0],
+            id: track.id
+        }))
     } catch(error) {
         console.log(`Error while trying to get recommendations: `, error.response.data);
     }

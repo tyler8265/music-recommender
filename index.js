@@ -4,9 +4,7 @@ const musicRoutes = require('./routes/music');
 const session = require('express-session');
 const { getToken } = require('./services/spotify');
 
-
 const app = express();
-let token = '';
 
 app.use(express.json());
 app.use(express.static('public'));
@@ -21,13 +19,15 @@ app.use('/music', musicRoutes);
 
 app.get('/callback', async (req, res) => {
     const { code } = req.query;
-    req.session.accessToken =  await getToken(code);
+    const { accessToken, refreshToken } =  await getToken(code);
+    req.session.accessToken = accessToken;
+    req.session.refreshToken = refreshToken;
     res.redirect('/');
 })
 
 app.get('/logout', (req, res) => {
     req.session.destroy();
-    res.redirect('/');
+    res.redirect('/music/login');
 })
 
 app.listen(process.env.PORT, () => {
