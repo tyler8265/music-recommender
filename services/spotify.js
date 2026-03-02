@@ -35,7 +35,7 @@ const getTopArtists = async (token) => {
                 'Authorization': `Bearer ${token}`,
             },
             params: {
-                limit: 5,
+                limit: 10,
                 time_range: 'medium_term'
              }
         })
@@ -58,7 +58,7 @@ const getTopTracks = async(token) => {
                 'Authorization': `Bearer ${token}`
             },
             params: {
-                limit: 5,
+                limit: 10,
                 time_range: 'medium_term'
              }
         })
@@ -141,7 +141,8 @@ const getRecommendations = async (token) => {
                 })
             })
         )
-        const tracks = topRelatedPicks.flatMap(res => res.data.tracks.items.slice(0, 2));
+        const randomizedTopTracks = topRelatedPicks.sort(() => Math.random() - 0.5);
+        const tracks = randomizedTopTracks.flatMap(res => res.data.tracks.items.slice(0, 5));
         const tracksFilter = tracks.filter(track => {
             !topTracksSet.has(track);
         })
