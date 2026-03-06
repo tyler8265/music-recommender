@@ -9,7 +9,6 @@ const User = require('./models/User');
 const app = express();
 
 app.use(express.json());
-app.use(express.static('public'));
 app.use(session({
     secret: `${process.env.SECRET_SESSION}`,
     resave: false,
