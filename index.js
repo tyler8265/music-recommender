@@ -2,7 +2,9 @@ require('dotenv').config();
 const express = require('express');
 const musicRoutes = require('./routes/music');
 const session = require('express-session');
-const { getToken } = require('./services/spotify');
+const { getToken, getUser } = require('./services/spotify');
+const mongoose = require('mongoose');
+const User = require('./models/User');
 
 const app = express();
 
@@ -20,8 +22,18 @@ app.use('/music', musicRoutes);
 app.get('/callback', async (req, res) => {
     const { code } = req.query;
     const { accessToken, refreshToken } =  await getToken(code);
-    req.session.accessToken = accessToken;
-    req.session.refreshToken = refreshToken;
+    const id = await getUser(accessToken);
+    await User.findOneAndUpdate(
+        { spotifyId: id },
+        {
+            accessToken: accessToken,
+            refreshToken: refreshToken
+        },
+        {
+            upsert: true
+        }
+    )
+    req.session.spotifyId = id;
     res.redirect('/');
 })
 
@@ -30,6 +42,9 @@ app.get('/logout', (req, res) => {
     res.redirect('/music/login');
 })
 
-app.listen(process.env.PORT, () => {
-    console.log("Server is running on PORT 3000...")
-})
+mongoose.connect(process.env.MONGODB_URI)
+    .then(() => console.log('Connected to MongoDB'))
+    .then(() => app.listen(process.env.PORT, () => {
+        console.log("Server is running on PORT 3000...")
+    }))
+    .catch(error => console.log('MongoDB error: ', error));

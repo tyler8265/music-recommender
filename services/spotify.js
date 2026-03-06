@@ -100,7 +100,7 @@ const getRecommendations = async (token) => {
     try {
         let topArtists = await getTopArtists(token);
         const topTracks = await getTopTracks(token);
-        const topTracksIds = topTracks.map(track => ({ id: track.id }))
+        const topTracksIds = topTracks.map(track => track.id);
         const topTracksSet = new Set();
         topTracksIds.forEach(id => {
             topTracksSet.add(id);
@@ -142,11 +142,11 @@ const getRecommendations = async (token) => {
             })
         )
         const randomizedTopTracks = topRelatedPicks.sort(() => Math.random() - 0.5);
-        const tracks = randomizedTopTracks.flatMap(res => res.data.tracks.items.slice(0, 5));
+        const tracks = randomizedTopTracks.flatMap(res => res.data.tracks.items.slice(0, 2));
         const tracksFilter = tracks.filter(track => {
-            !topTracksSet.has(track);
+            return !topTracksSet.has(track.id);
         })
-        return tracks.map(track => ({
+        return tracksFilter.map(track => ({
             name: track.name,
             artist: track.artists[0].name,
             album: track.album.name,
@@ -158,4 +158,14 @@ const getRecommendations = async (token) => {
     }
 }
 
-module.exports = { getAuthURL, getToken, getTopArtists, getTopTracks, getRecommendations };
+const getUser = async(token) => {
+    const response = await axios.get('https://api.spotify.com/v1/me', {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    })
+
+    return response.data.id
+}
+
+module.exports = { getAuthURL, getToken, getTopArtists, getTopTracks, getRecommendations, getUser };

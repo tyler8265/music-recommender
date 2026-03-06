@@ -1,9 +1,14 @@
 const router = require('express').Router();
+const User = require('../models/User');
 const { getAuthURL, getTopArtists, getTopTracks, getRecommendations } = require('../services/spotify');
 
-const requireAuth = (req, res, next) => {
-    if(req.session.accessToken) {
-        return next();
+const requireAuth = async (req, res, next) => {
+    if(req.session.spotifyId) {
+        const user = await User.findOne({ spotifyId: req.session.spotifyId })
+        if(user && user.accessToken) {
+            req.user = user;
+            return next();
+        }
     }
     return res.redirect('/music/login');
 }
@@ -19,13 +24,13 @@ router.get('/login', (req, res) => {
 
 router.get('/topArtists', requireAuth, async (req, res) => {
     try {
-        if(req.session.topArtists) {
-            return res.status(200).json({ artists: req.session.topArtists });
+        if(req.user.topArtists.length > 0) {
+            return res.status(200).json({ artists: req.user.topArtists });
         }
-        const topArtists = await getTopArtists(req.session.accessToken);
-        req.session.topArtists = topArtists;
-        req.session.genres = topArtists.flatMap(artist => artist.genres);
-        res.status(200).json({ artists: req.session.topArtists });
+        const topArtists = await getTopArtists(req.user.accessToken);
+        req.user.topArtists = topArtists;
+        await req.user.save();
+        res.status(200).json({ artists: req.user.topArtists });
     } catch(error) {
         res.status(500).json({error: 'Failed to fetch top artists.' });
     }
@@ -33,12 +38,13 @@ router.get('/topArtists', requireAuth, async (req, res) => {
 
 router.get('/topTracks', requireAuth, async (req, res) => {
     try {
-        if(req.session.topTracks) {
-            return res.status(200).json({ tracks: req.session.topTracks });
+        if(req.user.topTracks.length > 0) {
+            return res.status(200).json({ tracks: req.user.topTracks });
         }
-        const topTracks = await getTopTracks(req.session.accessToken);
-        req.session.topTracks = topTracks;
-        res.status(200).json({ tracks: req.session.topTracks });
+        const topTracks = await getTopTracks(req.user.accessToken);
+        req.user.topTracks = topTracks;
+        await req.user.save();
+        res.status(200).json({ tracks: req.user.topTracks });
     } catch(error) {
         res.status(500).json({ error: 'Failed to fetch top tracks.' });
     }
@@ -46,14 +52,19 @@ router.get('/topTracks', requireAuth, async (req, res) => {
 
 router.get('/recommend', requireAuth, async (req, res) => {
     try {
-        const recommend = await getRecommendations(req.session.accessToken);
+        req.user.recommendations = [];
+        await req.user.save();
+        const recommendations = await getRecommendations(req.user.accessToken);
+        req.user.recommendations = recommendations;
+        await req.user.save();
         res.status(200).json({
-            Recommendations: recommend
+            recommendations: req.user.recommendations
         });
     } catch(error) {
         res.status(500).json({ error: 'Failed to get recommendations.' });
     }
 })
+
 
 
 module.exports = router;
