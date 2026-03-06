@@ -5,8 +5,12 @@ const redirectURI = process.env.SPOTIFY_REDIRECT_URI;
 const state = require('crypto').randomBytes(16).toString('hex');
 
 const getAuthURL =  () => {
-    const authURL = `https://accounts.spotify.com/authorize?client_id=${process.env.SPOTIFY_CLIENT_ID}&response_type=code&redirect_uri=${process.env.SPOTIFY_REDIRECT_URI}&state=${state}&scope=${'user-top-read'}`
-    return authURL;
+    try{
+        const authURL = `https://accounts.spotify.com/authorize?client_id=${process.env.SPOTIFY_CLIENT_ID}&response_type=code&redirect_uri=${process.env.SPOTIFY_REDIRECT_URI}&state=${state}&scope=${'user-top-read'}&show_dialog=true`;
+        return authURL;
+    } catch(err) {
+        console.log('Login Error: ', err)
+    }
 }
 
 const getToken = async (code) => {

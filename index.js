@@ -18,27 +18,40 @@ app.use(session({
 
 app.use('/music', musicRoutes);
 
+app.get('/', (req, res) => {
+    if(req.session.status) {
+        return res.send(`Home Page: ${req.session.status}`);
+    }
+    return res.send(`Home Page, not logged in.`);
+});
+
 app.get('/callback', async (req, res) => {
-    const { code } = req.query;
-    const { accessToken, refreshToken } =  await getToken(code);
-    const id = await getUser(accessToken);
-    await User.findOneAndUpdate(
-        { spotifyId: id },
-        {
-            accessToken: accessToken,
-            refreshToken: refreshToken
-        },
-        {
-            upsert: true
-        }
-    )
-    req.session.spotifyId = id;
-    res.redirect('/');
+    try {
+        const { code } = req.query;
+        const { accessToken, refreshToken } =  await getToken(code);
+        const id = await getUser(accessToken);
+        await User.findOneAndUpdate(
+            { spotifyId: id },
+            {
+                accessToken: accessToken,
+                refreshToken: refreshToken
+            },
+            {
+                upsert: true
+            }
+        )
+        req.session.spotifyId = id;
+        req.session.status = 'Logged In';
+
+        res.redirect('/');
+    } catch(error) {
+        console.log(error);
+    }
 })
 
 app.get('/logout', (req, res) => {
     req.session.destroy();
-    res.redirect('/music/login');
+    res.redirect('/');
 })
 
 mongoose.connect(process.env.MONGODB_URI)
