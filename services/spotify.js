@@ -46,7 +46,6 @@ const getTopArtists = async (token) => {
         console.log(response.data.items);
         return response.data.items.map(artist => ({
             name: artist.name,
-            genres: artist.genres,
             image: artist.images[0].url,
             id: artist.id
         }))
@@ -90,7 +89,6 @@ const getRelatedArtists = async (artistName) => {
                 limit: 10
             }
         })
-        console.log(response.data.similarartists.artist);
         return response.data.similarartists.artist.map(artist => ({
             name: artist.name,
             match: artist.match
@@ -168,7 +166,7 @@ const getUser = async(token) => {
             'Authorization': `Bearer ${token}`
         }
     })
-
+    console.log(response.data);
     return response.data.id
 }
 

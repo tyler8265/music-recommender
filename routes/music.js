@@ -52,19 +52,41 @@ router.get('/topTracks', requireAuth, async (req, res) => {
 
 router.get('/recommend', requireAuth, async (req, res) => {
     try {
-        req.user.recommendations = [];
+        if(req.user.recommendations.length < 1) {
+            req.user.recommendations = [];
+        }
         await req.user.save();
-        const recommendations = await getRecommendations(req.user.accessToken);
-        req.user.recommendations = recommendations;
+        let filteredRecommendations = [], existingIds = [], recommendations = [];
+        let i = 0;
+        while(filteredRecommendations.length < 10) {
+            recommendations = await getRecommendations(req.user.accessToken);
+            existingIds = new Set(req.user.recommendations.map(recommendation => recommendation.id));
+            filteredRecommendations = recommendations.filter(recommendation => !existingIds.has(recommendation.id));
+            if(i == 5) {
+                break;
+            }
+            i++;
+        } 
+        req.user.recommendations.push(...filteredRecommendations);
         await req.user.save();
         res.status(200).json({
-            recommendations: req.user.recommendations
+            recommendations: filteredRecommendations
         });
     } catch(error) {
         res.status(500).json({ error: 'Failed to get recommendations.' });
     }
 })
 
+router.get('/recommendationHistory', requireAuth, (req, res) => {
+    try {
+        const recommendationHistory = req.users.recommendations;
+        res.status(200).json({
+            recommendationHistory: recommendationHistory
+        })
+    } catch(error) {
+        res.status(500).json({ error: 'Failed to get recommendation history.'});
+    }
+})
 
 
 module.exports = router;
