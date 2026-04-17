@@ -77,11 +77,10 @@ router.get('/recommend', requireAuth, async (req, res) => {
     }
 })
 
-router.get('/recommendationHistory', requireAuth, (req, res) => {
+router.get('/recommendationHistory', requireAuth, async(req, res) => {
     try {
-        const recommendationHistory = req.users.recommendations;
         res.status(200).json({
-            recommendationHistory: recommendationHistory
+            recommendationHistory: req.user.recommendations
         })
     } catch(error) {
         res.status(500).json({ error: 'Failed to get recommendation history.'});
