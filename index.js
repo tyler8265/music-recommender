@@ -1,8 +1,9 @@
 require('dotenv').config();
 const express = require('express');
 const musicRoutes = require('./routes/music');
+const  requireAuth = require('./middleware/requireAuth');
 const session = require('express-session');
-const { getToken, getUser } = require('./services/spotify');
+const { getToken, getUser, getAuthURL,  } = require('./services/spotify');
 const mongoose = require('mongoose');
 const User = require('./models/User');
 
@@ -12,9 +13,10 @@ app.use(express.json());
 app.use(session({
     secret: `${process.env.SECRET_SESSION}`,
     resave: false,
-    saveUninitialized: false
-
+    saveUninitialized: false,
+    cookie: { sameSite: 'lax' }
 }));
+
 
 app.use('/music', musicRoutes);
 
@@ -24,6 +26,15 @@ app.get('/', (req, res) => {
     }
     return res.send(`Home Page, not logged in.`);
 });
+
+app.get('/login', (req, res) => {
+    try{
+        const url = getAuthURL();
+        res.redirect(url);
+    } catch(error) {
+        res.status(500).json({error: 'Failed to get Auth URL.' })
+    }
+})
 
 app.get('/callback', async (req, res) => {
     try {
@@ -43,9 +54,17 @@ app.get('/callback', async (req, res) => {
         req.session.spotifyId = id;
         req.session.status = 'Logged In';
 
-        res.redirect('/');
+        res.redirect('http://localhost:5173/');
     } catch(error) {
         console.log(error);
+    }
+})
+
+app.get('/me', requireAuth, async(req, res) => {
+    try {
+        res.status(200).json({ user: req.user })
+    } catch(error) {
+        res.status(500).json({ error: `Failed to get /me` })
     }
 })
 

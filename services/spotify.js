@@ -3,7 +3,6 @@ const clientId = process.env.SPOTIFY_CLIENT_ID;
 const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
 const redirectURI = process.env.SPOTIFY_REDIRECT_URI;
 const state = require('crypto').randomBytes(16).toString('hex');
-
 const getAuthURL =  () => {
     try{
         const authURL = `https://accounts.spotify.com/authorize?client_id=${process.env.SPOTIFY_CLIENT_ID}&response_type=code&redirect_uri=${process.env.SPOTIFY_REDIRECT_URI}&state=${state}&scope=${'user-top-read'}&show_dialog=true`;
